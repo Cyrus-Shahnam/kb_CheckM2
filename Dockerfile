@@ -14,12 +14,12 @@ ENV MAMBA_ROOT_PREFIX=/opt/conda
 ENV MAMBA_NO_BANNER=1
 ENV MAMBA_DOCKERFILE_ACTIVATE=1
 
+RUN /opt/conda/envs/checkm2/bin/pip install jsonrpcbase jsonrpcserver kbase-common
+
 ENV MAMBA_ROOT_PREFIX=/opt/conda
 ADD https://micro.mamba.pm/api/micromamba/linux-64/latest /tmp/micromamba.tar.bz2
 RUN tar -xvjf /tmp/micromamba.tar.bz2 -C /usr/local/bin/ --strip-components=1 bin/micromamba && \
     chmod +x /usr/local/bin/micromamba && rm -f /tmp/micromamba.tar.bz2
-
-RUN /opt/conda/envs/checkm2/bin/pip install jsonrpcbase jsonrpcserver kbase-common
     
 # ------------------------------------------------------------
 # 2) Create a CheckM2 environment
