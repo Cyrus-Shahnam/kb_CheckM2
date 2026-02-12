@@ -63,3 +63,12 @@ test:
 
 clean:
 	rm -rfv $(LBIN_DIR)
+
+COMPILE_REPORT = compile_report.json
+
+compile-report:
+	kb-sdk compile $(SPEC_FILE) \
+		--out $(LIB_DIR) \
+		--pysrvname $(SERVICE_CAPS).$(SERVICE_CAPS)Server \
+		--pyimplname $(SERVICE_CAPS).$(SERVICE_CAPS)Impl \
+		--report $(COMPILE_REPORT)

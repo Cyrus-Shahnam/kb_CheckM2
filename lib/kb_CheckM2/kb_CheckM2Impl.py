@@ -20,11 +20,29 @@ class kb_CheckM2:
     kb_CheckM2
 
     Module Description:
-    KBase wrapper for CheckM2, providing a single app that runs
-    `checkm2 predict` on a variety of genome / bin object types and
-    returns a KBaseReport with the CheckM2 quality report attached.
+    Data types and functions for wrapping CheckM2 in KBase.
+
+ This module exposes a single function, run_checkm2_predict, which
+ runs `checkm2 predict` on a KBase object (BinnedContigs, Genome,
+ GenomeSet, Assembly, AssemblySet) and returns a KBaseReport with
+ the CheckM2 quality_report.tsv attached.
     '''
 
+    ######## WARNING FOR GEVENT USERS ####### noqa
+    # Since asynchronous IO can lead to methods - even the same method -
+    # interrupting each other, you must be *very* careful when using global
+    # state. A method could easily clobber the state set by another while
+    # the latter method is running.
+    ######################################### noqa
+    VERSION = "0.0.1"
+    GIT_URL = "https://github.com/Cyrus-Shahnam/kb_CheckM2.git"
+    GIT_COMMIT_HASH = "ef7fa8af8334641f0517b1865cde3c116f68abb8"
+
+    #BEGIN_CLASS_HEADER
+    #END_CLASS_HEADER
+
+    # config contains contents of config file in a hash or None if it couldn't
+    # be found
     def __init__(self, config):
         #BEGIN_CONSTRUCTOR
         self.callback_url = os.environ.get('SDK_CALLBACK_URL')
@@ -45,271 +63,45 @@ class kb_CheckM2:
         #END_CONSTRUCTOR
         pass
 
-    #BEGIN_CLASS_HELPERS
-
-    def _get_type_string(self, obj_ref):
-        """Return base type string for a workspace object, e.g.
-        'KBaseMetagenomes.BinnedContigs' (without version)."""
-        self.logger.info(f"Fetching object type for ref {obj_ref}")
-        res = self.dfu.get_objects({'object_refs': [obj_ref]})
-        info = res['data'][0]['info']
-        # info[2] is type like 'KBaseMetagenomes.BinnedContigs-3.0'
-        type_str = info[2].split('-')[0]
-        self.logger.info(f"Detected object type: {type_str}")
-        return type_str
-
-    def _export_binned_contigs(self, input_ref, work_dir):
-        """
-        Export BinnedContigs into individual FASTA files.
-
-        Assumes KBaseDataObjectToFileUtils.binned_contigs_to_file returns
-        a structure with 'file_path_list', each element having 'file_path'.
-        """
-        self.logger.info("Exporting BinnedContigs to FASTA files")
-        params = {
-            'input_ref': input_ref,
-            'target_dir': work_dir
-        }
-        res = self.kbfile.binned_contigs_to_file(params)
-        file_paths = []
-        # Common pattern: res['file_path_list'] = [{'file_path': ..., ...}, ...]
-        for fp in res.get('file_path_list', []):
-            file_paths.append(fp['file_path'])
-
-        if not file_paths:
-            # fallback: some implementations return 'bin_file_directory'
-            bin_dir = res.get('bin_file_directory')
-            if bin_dir and os.path.isdir(bin_dir):
-                for fname in os.listdir(bin_dir):
-                    if fname.lower().endswith(('.fa', '.fna', '.fasta', '.gz')):
-                        file_paths.append(os.path.join(bin_dir, fname))
-
-        if not file_paths:
-            raise ValueError("No FASTA files found when exporting BinnedContigs")
-
-        self.logger.info(f"Exported {len(file_paths)} bin FASTA files")
-        return file_paths
-
-    def _export_genome(self, input_ref, work_dir, base_name='genome'):
-        """Export a Genome object to a FASTA file."""
-        self.logger.info("Exporting Genome to FASTA")
-        params = {
-            'genome_ref': input_ref,
-            'filename': f'{base_name}.fa'
-        }
-        res = self.gfu.genome_to_fasta(params)
-        fasta_path = res['path']
-        self.logger.info(f"Exported genome FASTA: {fasta_path}")
-        return [fasta_path]
-
-    def _export_assembly(self, input_ref, work_dir):
-        """Export an Assembly object to a FASTA file."""
-        self.logger.info("Exporting Assembly to FASTA")
-        res = self.au.get_assembly_as_fasta({'ref': input_ref})
-        fasta_path = res['path']
-        self.logger.info(f"Exported assembly FASTA: {fasta_path}")
-        return [fasta_path]
-
-    def _export_assembly_set(self, input_ref, work_dir):
-        """Export a KBaseSets.AssemblySet to multiple FASTA files."""
-        self.logger.info("Exporting AssemblySet to FASTA files")
-        obj = self.dfu.get_objects({'object_refs': [input_ref]})['data'][0]['data']
-        items = obj.get('items', [])
-        fasta_paths = []
-        for idx, item in enumerate(items):
-            aref = item['ref']
-            self.logger.info(f"Exporting assembly {idx + 1}/{len(items)}: {aref}")
-            res = self.au.get_assembly_as_fasta({'ref': aref})
-            fasta_paths.append(res['path'])
-        self.logger.info(f"Exported {len(fasta_paths)} assemblies")
-        return fasta_paths
-
-    def _export_genome_set(self, input_ref, work_dir):
-        """Export a KBaseSets.GenomeSet to multiple FASTA files."""
-        self.logger.info("Exporting GenomeSet to FASTA files")
-        obj = self.dfu.get_objects({'object_refs': [input_ref]})['data'][0]['data']
-        elements = obj.get('elements', {})
-        fasta_paths = []
-        for idx, (name, element) in enumerate(elements.items()):
-            gref = element['ref']
-            self.logger.info(f"Exporting genome {idx + 1}/{len(elements)}: {name} ({gref})")
-            res = self.gfu.genome_to_fasta({
-                'genome_ref': gref,
-                'filename': f'{name}.fa'
-            })
-            fasta_paths.append(res['path'])
-        self.logger.info(f"Exported {len(fasta_paths)} genomes")
-        return fasta_paths
-
-    def _export_input_to_fastas(self, input_ref):
-        """
-        Dispatch on object type and export one or more FASTA paths for CheckM2.
-
-        Returns:
-            list of FASTA file paths
-        """
-        work_dir = os.path.join(self.scratch, f'checkm2_input_{uuid.uuid4().hex}')
-        os.makedirs(work_dir, exist_ok=True)
-        obj_type = self._get_type_string(input_ref)
-
-        if obj_type.startswith('KBaseMetagenomes.BinnedContigs'):
-            return self._export_binned_contigs(input_ref, work_dir)
-        elif obj_type.startswith('KBaseGenomes.Genome'):
-            return self._export_genome(input_ref, work_dir)
-        elif obj_type.startswith('KBaseGenomeAnnotations.Assembly') or \
-             obj_type.startswith('KBaseGenomes.Assembly'):
-            return self._export_assembly(input_ref, work_dir)
-        elif obj_type.startswith('KBaseSets.AssemblySet'):
-            return self._export_assembly_set(input_ref, work_dir)
-        elif obj_type.startswith('KBaseSets.GenomeSet'):
-            return self._export_genome_set(input_ref, work_dir)
-        else:
-            raise ValueError(f"Unsupported input type for CheckM2: {obj_type}")
-
-    def _build_checkm2_cmd(self, fasta_paths, params, out_dir):
-        """
-        Build the `checkm2 predict` command line based on params and FASTA paths.
-        """
-        # threads is an int in the KIDL, but we still guard for missing / empty
-        threads = int(params.get('threads', 4) or 4)
-
-        cmd = [
-            'checkm2', 'predict',
-            '--threads', str(threads),
-            '--output-directory', out_dir
-        ]
-
-        # Input: list of FASTA files
-        cmd.append('--input')
-        cmd.extend(fasta_paths)
-
-        # Database path (either passed in or taken from env in the Docker image)
-        db_path = params.get('database_path')
-        if db_path:
-            cmd.extend(['--database_path', db_path])
-
-        # tmpdir
-        tmpdir = params.get('tmpdir')
-        if tmpdir:
-            cmd.extend(['--tmpdir', tmpdir])
-
-        # extension
-        ext = params.get('extension')
-        if ext:
-            cmd.extend(['--extension', ext])
-
-        # ---- HERE is the important change: map 0/1 ints to booleans ----
-        lowmem_flag = int(params.get('lowmem', 0) or 0) == 1
-        use_genes_flag = int(params.get('use_genes', 0) or 0) == 1
-        stdout_flag = int(params.get('stdout', 0) or 0) == 1
-
-        if lowmem_flag:
-            cmd.append('--lowmem')
-        if use_genes_flag:
-            cmd.append('--genes')
-        if stdout_flag:
-            cmd.append('--stdout')
-
-        # Extra options map (mapping<string,string> in KIDL)
-        extra_opts = params.get('extra_options', {}) or {}
-        for key, val in extra_opts.items():
-            # allow both 'x' and '--x' styles; if user passes raw 'lowmem' etc
-            if key.startswith('-'):
-                flag = key
-            else:
-                flag = '--' + key
-            cmd.append(flag)
-            if val not in (None, '', True, False):
-                cmd.append(str(val))
-
-        self.logger.info(f"Constructed CheckM2 command: {' '.join(cmd)}")
-        return cmd
-
-
-
-    def _run_checkm2(self, fasta_paths, params):
-        """
-        Run CheckM2 predict and return output directory path.
-        """
-        out_dir = os.path.join(self.scratch, f'checkm2_output_{uuid.uuid4().hex}')
-        os.makedirs(out_dir, exist_ok=True)
-
-        cmd = self._build_checkm2_cmd(fasta_paths, params, out_dir)
-
-        log_path = os.path.join(out_dir, 'checkm2.log')
-        self.logger.info(f"Running CheckM2, logging to {log_path}")
-
-        with open(log_path, 'w') as log_fh:
-            proc = subprocess.Popen(
-                cmd,
-                cwd=self.scratch,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1
-            )
-            for line in proc.stdout:
-                line = line.rstrip('\n')
-                self.logger.info(line)
-                log_fh.write(line + '\n')
-
-            exit_code = proc.wait()
-
-        if exit_code != 0:
-            raise RuntimeError(f"CheckM2 exited with non-zero status: {exit_code}")
-
-        return out_dir
-
-    def _build_report(self, workspace_name, out_dir):
-        """
-        Create an extended KBase report with the CheckM2 outputs attached.
-        """
-        quality_tsv = os.path.join(out_dir, 'quality_report.tsv')
-        file_links = []
-        if os.path.isfile(quality_tsv):
-            file_links.append({
-                'path': quality_tsv,
-                'name': 'CheckM2_quality_report.tsv',
-                'description': 'CheckM2 completeness and contamination predictions'
-            })
-
-        # Also attach the log file if present
-        log_path = os.path.join(out_dir, 'checkm2.log')
-        if os.path.isfile(log_path):
-            file_links.append({
-                'path': log_path,
-                'name': 'checkm2.log',
-                'description': 'CheckM2 standard output / error'
-            })
-
-        message = (
-            "CheckM2 ran successfully.\n\n"
-            "The main output is quality_report.tsv, containing completeness and "
-            "contamination estimates for each input genome/bin."
-        )
-
-        report_params = {
-            'message': message,
-            'workspace_name': workspace_name,
-            'file_links': file_links,
-            'direct_html_link_index': None,
-            'html_links': [],
-            'report_object_name': 'CheckM2_report_' + uuid.uuid4().hex
-        }
-
-        report_info = self.kbr.create_extended_report(report_params)
-        return {
-            'report_name': report_info['name'],
-            'report_ref': report_info['ref'],
-            'output_directory': out_dir
-        }
-
-    #END_CLASS_HELPERS
 
     def run_checkm2_predict(self, ctx, params):
         """
-        Run CheckM2 `predict` over the provided input object.
+        Run CheckM2 `predict` on the given input object and create a
+        KBaseReport with the quality_report.tsv attached.
+        :param params: instance of type "CheckM2Params" (* Parameters for
+           running CheckM2. * * workspace_name  ??? KBase workspace to save
+           the report in. * input_ref       ??? Reference to the input object
+           (BinnedContigs, *                   Genome, GenomeSet, Assembly,
+           AssemblySet). * threads         ??? Number of CPU threads to use.
+           * database_path   ??? Optional explicit CheckM2 DIAMOND DB path * 
+           (uniref100.KO.1.dmnd). If not provided, CheckM2 *                 
+           will fall back to CHECKM2DB env variable or its *                 
+           default. * tmpdir          ??? Optional tmp directory for CheckM2.
+           * extension       ??? File extension for gzipped bins (if needed).
+           * lowmem         ??? Use CheckM2 --lowmem mode (0/1). * use_genes 
+           ??? If 1, assume input FASTA are predicted genes *                
+           and pass --genes to CheckM2. * stdout         ??? If 1, also print
+           results to stdout. * extra_options  ??? Free-form map for future
+           CLI flags. * * NOTE: We???re not using @optional tags here;
+           we???ll treat missing * JSON fields as ???not set??? and handle
+           defaults in Python.) -> structure: parameter "workspace_name" of
+           type "workspace_name", parameter "input_ref" of type
+           "data_obj_ref", parameter "threads" of Long, parameter
+           "database_path" of String, parameter "tmpdir" of String, parameter
+           "extension" of String, parameter "lowmem" of Long, parameter
+           "use_genes" of Long, parameter "stdout" of Long, parameter
+           "extra_options" of type "string_map" -> mapping from String to
+           String
+        :returns: instance of type "CheckM2Output" (* Output from running
+           CheckM2. * * report_name      ??? Name of the KBaseReport object.
+           * report_ref       ??? Workspace reference to the KBaseReport. *
+           output_directory ??? Path on the local filesystem (scratch) where
+           *                    CheckM2 output was written.) -> structure:
+           parameter "report_name" of String, parameter "report_ref" of
+           String, parameter "output_directory" of String
         """
+        # ctx is the context object
+        # return variables are: returnVal
         #BEGIN run_checkm2_predict
         self.logger.info('Starting run_checkm2_predict with params:')
         self.logger.info(str(params))
@@ -335,3 +127,19 @@ class kb_CheckM2:
         self.logger.info('run_checkm2_predict completed successfully')
         return [result]
         #END run_checkm2_predict
+
+        # At some point might do deeper type checking...
+        if not isinstance(returnVal, dict):
+            raise ValueError('Method run_checkm2_predict return value ' +
+                             'returnVal is not type dict as required.')
+        # return the results
+        return [returnVal]
+    def status(self, ctx):
+        #BEGIN_STATUS
+        returnVal = {'state': "OK",
+                     'message': "",
+                     'version': self.VERSION,
+                     'git_url': self.GIT_URL,
+                     'git_commit_hash': self.GIT_COMMIT_HASH}
+        #END_STATUS
+        return [returnVal]

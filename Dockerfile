@@ -58,16 +58,14 @@ RUN mkdir -p /kb/module/data/checkm2_db && \
 ENV CHECKM2DB=/kb/module/data/checkm2_db/CheckM2_database/CheckM2_database.dmnd
 
 
-# ------------------------------------------------------------
-# 4) Copy module code and set working dir
-# ------------------------------------------------------------
-WORKDIR /kb/module
-COPY . /kb/module
+COPY ./ /kb/module
+RUN mkdir -p /kb/module/work
+RUN chmod -R a+rw /kb/module
 
-# ------------------------------------------------------------
-# 5) Standard KBase entrypoint (reuse the one you already use)
-# ------------------------------------------------------------
-# entrypoint.sh is the usual SDK script you’re using in other modules
-ENTRYPOINT ["./scripts/entrypoint.sh"]
+WORKDIR /kb/module
+
+RUN make all
+
+ENTRYPOINT [ "./scripts/entrypoint.sh" ]
 
 CMD [ ]
