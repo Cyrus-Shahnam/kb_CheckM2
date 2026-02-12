@@ -1,0 +1,113 @@
+{
+  "ver": "1.0.0",
+  "authors": [
+    "acshahnam"
+  ],
+  "contact": "sv1@ornl.gov",
+  "categories": [
+    "active",
+    "annotation"
+  ],
+  "widgets": {
+    "input": null,
+    "output": "kbaseReportView"
+  },
+  "parameters": [
+    {
+      "id": "input_ref",
+      "optional": false,
+      "advanced": false,
+      "allow_multiple": false,
+      "default_values": [ "" ],
+      "field_type": "text",
+      "text_options": {
+        "valid_ws_types": [
+          "KBaseMetagenomes.BinnedContigs",
+          "KBaseGenomes.Genome",
+          "KBaseAssembly.Assembly",
+          "KBaseSets.AssemblySet",
+          "KBaseSearch.GenomeSet"
+        ]
+      }
+    },
+    {
+      "id": "threads",
+      "optional": true,
+      "advanced": true,
+      "allow_multiple": false,
+      "default_values": [ "8" ],
+      "field_type": "text",
+      "text_options": {
+        "validate_as": "int",
+        "min_int": 1,
+        "max_int": 256
+      }
+    },
+    {
+      "id": "lowmem",
+      "optional": true,
+      "advanced": true,
+      "allow_multiple": false,
+      "default_values": [ "0" ],
+      "field_type": "checkbox",
+      "checkbox_options": {
+        "checked_value": "1",
+        "unchecked_value": "0"
+      }
+    },
+    {
+      "id": "use_genes",
+      "optional": true,
+      "advanced": true,
+      "allow_multiple": false,
+      "default_values": [ "0" ],
+      "field_type": "checkbox",
+      "checkbox_options": {
+        "checked_value": "1",
+        "unchecked_value": "0"
+      }
+    }
+  ],
+  "behavior": {
+    "service-mapping": {
+      "url": "",
+      "name": "kb_CheckM2",
+      "method": "run_checkm2_predict",
+      "input_mapping": [
+        {
+          "narrative_system_variable": "workspace",
+          "target_property": "workspace_name"
+        },
+        {
+          "input_parameter": "input_ref",
+          "target_property": "input_ref",
+          "target_type_transform": "ref"
+        },
+        {
+          "input_parameter": "threads",
+          "target_property": "threads",
+          "target_type_transform": "int"
+        },
+        {
+          "input_parameter": "lowmem",
+          "target_property": "lowmem"
+        },
+        {
+          "input_parameter": "use_genes",
+          "target_property": "use_genes"
+        }
+      ],
+      "output_mapping": [
+        {
+          "service_method_output_path": [0, "report_name"],
+          "target_property": "report_name"
+        },
+        {
+          "service_method_output_path": [0, "report_ref"],
+          "target_property": "report_ref"
+        }
+      ]
+    }
+  },
+  "job_id_output_field": "docker"
+}

@@ -1,0 +1,63 @@
+name: "Assess genome quality with CheckM2"
+tooltip: "Run CheckM2 on genomes, bins, or assemblies to estimate completeness and contamination."
+screenshots: []
+icon: checkm2_icon.png
+
+parameters:
+  input_ref:
+    ui-name: "Input object"
+    short-hint: "Assembly / BinnedContigs / Genome / set to evaluate with CheckM2."
+    long-hint: >
+      Select an Assembly, Genome, BinnedContigs object, or an Assembly/Genome set
+      from your workspace. CheckM2 will run the `predict` command on each genome or bin.
+
+  threads:
+    ui-name: "Threads"
+    short-hint: "Number of CPU threads to use."
+    long-hint: >
+      Optional. Controls the number of CPU threads passed to CheckM2.
+      If left blank, a sensible default is used inside the app.
+
+  lowmem:
+    ui-name: "Low-memory mode"
+    short-hint: "Use CheckM2 low-memory mode."
+    long-hint: >
+      Enable the low-memory mode in CheckM2 (equivalent to the --lowmem flag),
+      recommended when RAM is limited.
+
+  use_genes:
+    ui-name: "Input is predicted genes"
+    short-hint: "Bins contain predicted genes rather than contigs."
+    long-hint: >
+      Enable this if your FASTA input consists of predicted genes rather than
+      nucleotide contigs (equivalent to the --genes flag in CheckM2).
+
+description: |
+  This app wraps the **CheckM2** tool to estimate genome completeness and contamination
+  for isolate genomes, single-cell genomes, and metagenome-assembled genomes (MAGs).
+
+  CheckM2 is a machine-learning based successor to CheckM that uses a large reference
+  database and amino acid sequence features to predict genome quality.
+
+  The app runs `checkm2 predict` on each genome or bin in the selected input object
+  and returns a KBase report with the standard `quality_report.tsv` table attached.
+
+technical-description: |
+  *Input handling*
+  - The selected Workspace object (Assembly / Genome / BinnedContigs / AssemblySet /
+    GenomeSet) is downloaded to the module scratch directory.
+  - Each genome or bin is exported as a FASTA file in a directory layout compatible
+    with CheckM2.
+
+  *CheckM2 execution*
+  - `checkm2 predict` is executed with the requested options (threads, lowmem, genes).
+  - The main tabular output (`quality_report.tsv`) is collected as the primary result.
+
+  *Output*
+  - A `KBaseReport.Report` object is created with `quality_report.tsv` attached.
+  - The app does not create new typed Workspace objects; all results are stored in
+    the report.
+
+publications:
+  - display-text: "CheckM2 source code and documentation"
+    link: "https://github.com/chklovski/CheckM2"

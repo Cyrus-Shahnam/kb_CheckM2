@@ -1,0 +1,11 @@
+name: checkm2
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.8
+  - pip
+  - nose
+  - jinja2
+  - diamond 
+  - prodigal
