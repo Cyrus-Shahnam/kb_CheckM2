@@ -12,9 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ENV MAMBA_ROOT_PREFIX=/opt/conda
 ENV MAMBA_NO_BANNER=1
-ENV MAMBA_DOCKERFILE_ACTIVATE=1
-
-RUN /opt/conda/envs/checkm2/bin/pip install jsonrpcbase jsonrpcserver kbase-common
+ENV MAMBA_DOCKERFILE_ACTIVATE=0
 
 ENV MAMBA_ROOT_PREFIX=/opt/conda
 ADD https://micro.mamba.pm/api/micromamba/linux-64/latest /tmp/micromamba.tar.bz2
@@ -41,11 +39,14 @@ RUN micromamba create -y -n checkm2 -f /tmp/env-checkm2.yml && \
         "CheckM2==1.0.1" && \
     micromamba clean -a -y
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    diamond-aligner prodigal && \
+    rm -rf /var/lib/apt/lists/*
+
 RUN /opt/conda/envs/checkm2/bin/python -c "import os, checkm2; from importlib.metadata import version; p=os.path.join(os.path.dirname(checkm2.__file__),'models'); print('CheckM2', version('CheckM2')); print('models_dir', p); print('models_exists', os.path.isdir(p)); print('models_contents', os.listdir(p)[:200] if os.path.isdir(p) else 'N/A')"
 RUN /opt/conda/envs/checkm2/bin/python -c "import tensorflow as tf, keras; print('tf', tf.__version__); print('keras', keras.__version__)"
 
 # Make sure the env is on PATH at runtime
-ENV PATH=/opt/conda/envs/checkm2/bin:$PATH
 
 # ------------------------------------------------------------
 # 3) (Optional but nice for dev) Download the CheckM2 database

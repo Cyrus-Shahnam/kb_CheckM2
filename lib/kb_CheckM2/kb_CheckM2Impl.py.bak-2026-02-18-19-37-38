@@ -36,7 +36,7 @@ class kb_CheckM2:
     ######################################### noqa
     VERSION = "0.0.1"
     GIT_URL = "https://github.com/Cyrus-Shahnam/kb_CheckM2.git"
-    GIT_COMMIT_HASH = "6329fe6cc2a384c1d3be3ef3791bd342d97b3ae8"
+    GIT_COMMIT_HASH = "ef7fa8af8334641f0517b1865cde3c116f68abb8"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
