@@ -10,6 +10,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl bzip2 ca-certificates git && \
     rm -rf /var/lib/apt/lists/*
 
+# Install KB SDK packages explicitly from GitHub
+RUN pip install git+https://github.com/kbaseIncubator/jsonrpcbase.git
+RUN pip install git+https://github.com/kbaseIncubator/biokbase.git
+
 ENV MAMBA_ROOT_PREFIX=/opt/conda
 ENV MAMBA_NO_BANNER=1
 ENV MAMBA_DOCKERFILE_ACTIVATE=0
