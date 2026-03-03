@@ -125,15 +125,20 @@ class kb_CheckM2:
         result = self._build_report(workspace_name, out_dir)
 
         self.logger.info('run_checkm2_predict completed successfully')
-        return [result]
-        #END run_checkm2_predict
-
+        
         # At some point might do deeper type checking...
-        if not isinstance(returnVal, dict):
+        if not isinstance(result, dict):
             raise ValueError('Method run_checkm2_predict return value ' +
-                             'returnVal is not type dict as required.')
-        # return the results
-        return [returnVal]
+                             'result is not type dict as required.')
+        #END run_checkm2_predict
+        return [result]
+
+    def run_kb_CheckM2(self, ctx, params):
+        """
+        Alias method for run_checkm2_predict to match the KBase naming convention.
+        """
+        return self.run_checkm2_predict(ctx, params)
+
     def status(self, ctx):
         #BEGIN_STATUS
         returnVal = {'state': "OK",
