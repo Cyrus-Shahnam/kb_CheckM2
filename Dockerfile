@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 # Install KB SDK packages explicitly from GitHub
-RUN pip install git+https://github.com/kbaseIncubator/jsonrpcbase.git
+RUN pip install jsonrpcbase
 
 ENV MAMBA_ROOT_PREFIX=/opt/conda
 ENV MAMBA_NO_BANNER=1
