@@ -1,4 +1,4 @@
-FROM kbase/sdkpython:3.8.10
+FROM kbase/sdkpython:3.8.0
 LABEL maintainer="ac.shahnam"
 
 USER root
