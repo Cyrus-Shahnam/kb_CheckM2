@@ -148,3 +148,88 @@ class kb_CheckM2:
                      'git_commit_hash': self.GIT_COMMIT_HASH}
         #END_STATUS
         return [returnVal]
+
+    # Helper method to run checkm2 command with proper conda environment
+    def _run_checkm2_cmd(self, cmd):
+        """
+        Run a CheckM2 command in the checkm2 conda environment.
+        """
+        # Activate the checkm2 environment and run the command
+        bash_cmd = f"source /opt/conda/etc/profile.d/conda.sh && conda activate checkm2 && {cmd}"
+        result = subprocess.run(bash_cmd, shell=True, executable='/bin/bash', 
+                              capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            self.logger.error(f"CheckM2 command failed: {cmd}")
+            self.logger.error(f"stderr: {result.stderr}")
+            raise RuntimeError(f"CheckM2 command failed with return code {result.returncode}")
+        
+        return result
+
+    def _export_input_to_fastas(self, input_ref):
+        """
+        Export the input object to FASTA file(s).
+        Placeholder - needs implementation based on actual input types.
+        """
+        self.logger.info(f"Exporting input {input_ref} to FASTA")
+        # This would need to be implemented to handle different KBase object types
+        fasta_paths = []
+        return fasta_paths
+
+    def _run_checkm2(self, fasta_paths, params):
+        """
+        Run CheckM2 predict on the given FASTA files.
+        """
+        self.logger.info("Running CheckM2 predict")
+        out_dir = os.path.join(self.scratch, str(uuid.uuid4()))
+        os.makedirs(out_dir, exist_ok=True)
+        
+        # Build CheckM2 command
+        cmd = f"checkm2 predict"
+        
+        # Add threads parameter
+        threads = params.get('threads', 4)
+        if threads:
+            cmd += f" --threads {threads}"
+        
+        # Add database path if provided
+        db_path = params.get('database_path')
+        if db_path:
+            cmd += f" --database {db_path}"
+        
+        # Add lowmem mode if requested
+        if params.get('lowmem'):
+            cmd += " --lowmem"
+        
+        # Add --genes flag if input are genes
+        if params.get('use_genes'):
+            cmd += " --genes"
+        
+        # Add input and output
+        for fasta in fasta_paths:
+            cmd += f" --input {fasta}"
+        
+        cmd += f" --output-dir {out_dir}"
+        
+        self.logger.info(f"Running command: {cmd}")
+        result = self._run_checkm2_cmd(cmd)
+        
+        self.logger.info(f"CheckM2 output: {result.stdout}")
+        return out_dir
+
+    def _build_report(self, workspace_name, out_dir):
+        """
+        Build a KBase report from CheckM2 output.
+        """
+        self.logger.info(f"Building report from {out_dir}")
+        
+        report_name = f"checkm2_report_{str(uuid.uuid4())[:8]}"
+        
+        report = {
+            'report_name': report_name,
+            'report_ref': f"{workspace_name}/{report_name}",
+            'output_directory': out_dir
+        }
+        
+        return report
+

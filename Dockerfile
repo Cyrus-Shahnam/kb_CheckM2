@@ -29,27 +29,27 @@ COPY env-checkm2.yml /tmp/env-checkm2.yml
 #   a) specify checkm2 directly in env-checkm2.yml, OR
 #   b) keep env-checkm2.yml minimal and install checkm2 here.
 #
-# This version uses conda for CheckM2 and related tools, pip for KB SDK packages
+# This version uses conda for CheckM2 and related tools, but keeps KB SDK in base Python
 RUN micromamba create -y -n checkm2 -f /tmp/env-checkm2.yml
 
-# Install KB SDK base packages first (lightweight)
-RUN /opt/conda/envs/checkm2/bin/pip install --no-cache-dir \
-        "jsonrpcbase" \
-        "biokbase"
-
-# Install numpy and pandas
+# Install CheckM2 dependencies and CheckM2 itself in the checkm2 environment
 RUN /opt/conda/envs/checkm2/bin/pip install --no-cache-dir \
         "numpy<1.24" \
         "pandas==1.5.3"
 
-# Install TensorFlow and Keras (heavy, do separately)
 RUN /opt/conda/envs/checkm2/bin/pip install --no-cache-dir \
         "tensorflow==2.13.*" \
         "keras==2.13.*"
 
-# Install CheckM2 last
 RUN /opt/conda/envs/checkm2/bin/pip install --no-cache-dir \
         "CheckM2>=1.0.0"
+
+# Install KB SDK packages in BASE Python (not in the checkm2 environment)
+# These are already available in kbase/sdkpython but we ensure they're present
+RUN pip install --no-cache-dir \
+        "jsonrpcbase" \
+        "biokbase" \
+        "requests"
 
 RUN micromamba clean -a -y
 
