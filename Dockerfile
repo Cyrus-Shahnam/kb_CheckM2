@@ -30,16 +30,22 @@ COPY env-checkm2.yml /tmp/env-checkm2.yml
 #   b) keep env-checkm2.yml minimal and install checkm2 here.
 #
 # This version assumes the YAML includes `checkm2` as a dependency.
-RUN micromamba create -y -n checkm2 -f /tmp/env-checkm2.yml && \
-    /opt/conda/envs/checkm2/bin/pip install --no-cache-dir \
+RUN micromamba create -y -n checkm2 -f /tmp/env-checkm2.yml
+
+RUN /opt/conda/envs/checkm2/bin/pip install --no-cache-dir \
         "numpy<1.24" \
-        "pandas==1.5.3" \
+        "pandas==1.5.3"
+
+RUN /opt/conda/envs/checkm2/bin/pip install --no-cache-dir \
         "tensorflow==2.13.*" \
-        "keras==2.13.*" \
+        "keras==2.13.*"
+
+RUN /opt/conda/envs/checkm2/bin/pip install --no-cache-dir \
         "CheckM2==1.0.1" \
         "jsonrpcbase" \
-        "biokbase" && \
-    micromamba clean -a -y
+        "biokbase"
+
+RUN micromamba clean -a -y
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     diamond-aligner prodigal && \
