@@ -44,13 +44,6 @@ RUN /opt/conda/envs/checkm2/bin/pip install --no-cache-dir \
 RUN /opt/conda/envs/checkm2/bin/pip install --no-cache-dir \
         "CheckM2>=1.0.0"
 
-# Install KB SDK packages in BASE Python (not in the checkm2 environment)
-# These are already available in kbase/sdkpython but we ensure they're present
-RUN pip install --no-cache-dir \
-        "jsonrpcbase" \
-        "biokbase" \
-        "requests"
-
 RUN micromamba clean -a -y
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
