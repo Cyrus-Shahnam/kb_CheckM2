@@ -46,7 +46,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN /opt/conda/envs/checkm2/bin/python -c "import os, checkm2; from importlib.metadata import version; p=os.path.join(os.path.dirname(checkm2.__file__),'models'); print('CheckM2', version('CheckM2')); print('models_dir', p); print('models_exists', os.path.isdir(p)); print('models_contents', os.listdir(p)[:200] if os.path.isdir(p) else 'N/A')"
 RUN /opt/conda/envs/checkm2/bin/python -c "import tensorflow as tf, keras; print('tf', tf.__version__); print('keras', keras.__version__)"
 
-# Make sure the env is on PATH at runtime
+# Make sure the checkm2 env is on PATH at runtime
+ENV PATH /opt/conda/envs/checkm2/bin:$PATH
 
 # ------------------------------------------------------------
 # 3) (Optional but nice for dev) Download the CheckM2 database
