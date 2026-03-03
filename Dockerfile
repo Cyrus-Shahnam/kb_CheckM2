@@ -12,7 +12,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install KB SDK packages explicitly from GitHub
 RUN pip install git+https://github.com/kbaseIncubator/jsonrpcbase.git
-RUN pip install git+https://github.com/kbaseIncubator/biokbase.git
 
 ENV MAMBA_ROOT_PREFIX=/opt/conda
 ENV MAMBA_NO_BANNER=1
