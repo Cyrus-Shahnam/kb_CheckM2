@@ -2,6 +2,7 @@ name: checkm2
 channels:
   - conda-forge
   - bioconda
+  - defaults
 dependencies:
   - python=3.8
   - pip
@@ -9,3 +10,8 @@ dependencies:
   - jinja2
   - diamond 
   - prodigal
+  - requests
+  - pyyaml
+pip:
+  - jsonrpcbase
+  - biokbase

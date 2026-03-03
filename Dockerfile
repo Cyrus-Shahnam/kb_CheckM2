@@ -36,7 +36,9 @@ RUN micromamba create -y -n checkm2 -f /tmp/env-checkm2.yml && \
         "pandas==1.5.3" \
         "tensorflow==2.13.*" \
         "keras==2.13.*" \
-        "CheckM2==1.0.1" && \
+        "CheckM2==1.0.1" \
+        "jsonrpcbase" \
+        "biokbase" && \
     micromamba clean -a -y
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
