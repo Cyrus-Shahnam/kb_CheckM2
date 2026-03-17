@@ -10,9 +10,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl bzip2 ca-certificates git && \
     rm -rf /var/lib/apt/lists/*
 
-# Install KB SDK packages explicitly from GitHub
-RUN pip install jsonrpcbase
-
 ENV MAMBA_ROOT_PREFIX=/opt/conda
 ENV MAMBA_NO_BANNER=1
 ENV MAMBA_DOCKERFILE_ACTIVATE=0
@@ -45,7 +42,8 @@ RUN /opt/conda/envs/checkm2/bin/pip install --no-cache-dir \
         "keras==2.13.*"
 
 RUN /opt/conda/envs/checkm2/bin/pip install --no-cache-dir \
-        "CheckM2>=1.0.0"
+        "CheckM2>=1.0.0" \
+        "JSONRPCBase==0.1.2"
 
 RUN micromamba clean -a -y
 
