@@ -36,6 +36,7 @@ RUN micromamba create -y -n checkm2 -f /tmp/env-checkm2.yml
 RUN /opt/conda/envs/checkm2/bin/pip install --no-cache-dir \
         "numpy<1.24" \
         "pandas==1.5.3"
+        "JSONRPCBase==0.2.0"
 
 RUN /opt/conda/envs/checkm2/bin/pip install --no-cache-dir \
         "tensorflow==2.13.*" \
@@ -43,7 +44,6 @@ RUN /opt/conda/envs/checkm2/bin/pip install --no-cache-dir \
 
 RUN /opt/conda/envs/checkm2/bin/pip install --no-cache-dir \
         "CheckM2>=1.0.0" \
-        "JSONRPCBase==0.1.2"
 
 RUN micromamba clean -a -y
 
