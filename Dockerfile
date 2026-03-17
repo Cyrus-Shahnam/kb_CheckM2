@@ -40,11 +40,12 @@ RUN /opt/conda/envs/checkm2/bin/pip install --no-cache-dir \
 RUN /opt/conda/envs/checkm2/bin/pip install --no-cache-dir \
         "tensorflow==2.13.*" \
         "keras==2.13.*"
-        "JSONRPCBase==0.2.0"
 
 
 RUN /opt/conda/envs/checkm2/bin/pip install --no-cache-dir \
         "CheckM2>=1.0.0" \
+        "JSONRPCBase==0.2.0"
+
 
 RUN micromamba clean -a -y
 
