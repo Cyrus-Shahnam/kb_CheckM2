@@ -20,7 +20,6 @@ class kb_CheckM2:
     GIT_URL = "https://github.com/Cyrus-Shahnam/kb_CheckM2.git"
     GIT_COMMIT_HASH = "6329fe6cc2a384c1d3be3ef3791bd342d97b3ae8"
 
-    # Full path to checkm2 binary - never rely on PATH
     CHECKM2_BIN = '/opt/conda/envs/checkm2/bin/checkm2'
 
     #BEGIN_CLASS_HEADER
@@ -38,7 +37,6 @@ class kb_CheckM2:
         self.gfu = GenomeFileUtil(self.callback_url)
         self.kbr = KBaseReport(self.callback_url)
 
-        # CheckM2 database path - from env or deploy.cfg
         self.checkm2_db = (
             config.get('checkm2_db')
             or os.environ.get('CHECKM2DB')
@@ -51,10 +49,13 @@ class kb_CheckM2:
         pass
 
     def run_checkm2_predict(self, ctx, params):
+        """
+        Run CheckM2 predict on the given input object and create a
+        KBaseReport with the quality_report.tsv attached.
+        """
         #BEGIN run_checkm2_predict
         self.logger.info('Starting run_checkm2_predict with params: %s', params)
 
-        # --- Validate required params ---
         for required in ('workspace_name', 'input_ref'):
             if not params.get(required):
                 raise ValueError('Parameter {} is required'.format(required))
@@ -85,9 +86,15 @@ class kb_CheckM2:
 
         self.logger.info('run_checkm2_predict completed successfully')
         return [result]
+        #END run_checkm2_predict
 
     def run_kb_CheckM2(self, ctx, params):
+        """
+        Alias method to match KBase naming convention.
+        """
+        #BEGIN run_kb_CheckM2
         return self.run_checkm2_predict(ctx, params)
+        #END run_kb_CheckM2
 
     def status(self, ctx):
         #BEGIN_STATUS
@@ -108,8 +115,6 @@ class kb_CheckM2:
     def _export_input_to_fastas(self, input_ref, obj_type):
         """
         Export KBase object to FASTA file(s) depending on type.
-        Supported: KBaseGenomes.Genome, KBaseGenomeAnnotations.Assembly,
-                   KBaseSets.AssemblySet, KBaseMetagenomes.BinnedContigs
         """
         fasta_paths = []
         export_dir = os.path.join(self.scratch, 'fasta_' + uuid.uuid4().hex)
@@ -133,7 +138,6 @@ class kb_CheckM2:
         elif obj_type in ('KBaseSets.AssemblySet',
                           'KBaseSearch.GenomeSet',
                           'KBaseGenomes.GenomeSet'):
-            # Get members and recurse
             obj_data = self.ws.get_objects2(
                 {'objects': [{'ref': input_ref}]}
             )['data'][0]['data']
@@ -170,12 +174,11 @@ class kb_CheckM2:
 
     def _run_checkm2(self, fasta_paths, params):
         """
-        Run checkm2 predict using absolute binary path (never relies on PATH).
+        Run checkm2 predict using absolute binary path.
         """
         out_dir = os.path.join(self.scratch, 'checkm2_' + uuid.uuid4().hex)
         os.makedirs(out_dir, exist_ok=True)
 
-        # For multiple FASTAs, symlink them all into one input dir
         input_dir = os.path.join(self.scratch, 'checkm2_input_' + uuid.uuid4().hex)
         os.makedirs(input_dir, exist_ok=True)
         for fasta in fasta_paths:
@@ -186,14 +189,13 @@ class kb_CheckM2:
         threads = str(params.get('threads', 4))
         db_path = params.get('database_path') or self.checkm2_db
 
-        # Build command using absolute path - critical for appdev/prod
         cmd = [
             self.CHECKM2_BIN, 'predict',
             '--input', input_dir,
             '--output-directory', out_dir,
             '--threads', threads,
             '--database_path', db_path,
-            '--force',         # overwrite if dir exists
+            '--force',
         ]
 
         if params.get('lowmem'):
@@ -202,7 +204,6 @@ class kb_CheckM2:
         if params.get('use_genes'):
             cmd.append('--genes')
 
-        # Add any extra options
         for k, v in (params.get('extra_options') or {}).items():
             cmd.extend(['--' + k, v])
 
@@ -224,7 +225,6 @@ class kb_CheckM2:
                 )
             )
 
-        # Verify output was produced
         report_tsv = os.path.join(out_dir, 'quality_report.tsv')
         if not os.path.exists(report_tsv):
             raise RuntimeError(
@@ -236,22 +236,20 @@ class kb_CheckM2:
 
     def _build_report(self, workspace_name, out_dir):
         """
-        Build and save a KBaseReport with the quality_report.tsv attached.
+        Build and save a KBaseReport with CheckM2 output attached.
         """
         report_tsv = os.path.join(out_dir, 'quality_report.tsv')
 
-        # Parse TSV for summary message
         summary_lines = []
         if os.path.exists(report_tsv):
             with open(report_tsv, 'r') as f:
                 lines = f.readlines()
-            summary_lines = lines[:min(len(lines), 51)]  # header + up to 50 bins
+            summary_lines = lines[:min(len(lines), 51)]
 
         message = 'CheckM2 quality assessment completed.\n\n'
         message += 'Results summary:\n'
         message += ''.join(summary_lines) if summary_lines else '(no results)'
 
-        # Collect all output files
         file_links = []
         for fname in os.listdir(out_dir):
             fpath = os.path.join(out_dir, fname)
