@@ -23,99 +23,8 @@ class kb_CheckM2:
     CHECKM2_BIN = '/opt/conda/envs/checkm2/bin/checkm2'
 
     #BEGIN_CLASS_HEADER
-    #END_CLASS_HEADER
-
-    def __init__(self, config):
-        #BEGIN_CONSTRUCTOR
-        self.callback_url = os.environ.get('SDK_CALLBACK_URL')
-        self.scratch = os.path.abspath(config['scratch'])
-        self.ws_url = config['workspace-url']
-
-        self.ws = Workspace(self.ws_url)
-        self.dfu = DataFileUtil(self.callback_url)
-        self.au = AssemblyUtil(self.callback_url)
-        self.gfu = GenomeFileUtil(self.callback_url)
-        self.kbr = KBaseReport(self.callback_url)
-
-        self.checkm2_db = (
-            config.get('checkm2_db')
-            or os.environ.get('CHECKM2DB')
-            or '/kb/module/data/checkm2_db/CheckM2_database/CheckM2_database.dmnd'
-        )
-
-        logging.basicConfig(level=logging.INFO)
-        self.logger = logging.getLogger('kb_CheckM2')
-        #END_CONSTRUCTOR
-        pass
-
-    def run_checkm2_predict(self, ctx, params):
-        """
-        Run CheckM2 predict on the given input object and create a
-        KBaseReport with the quality_report.tsv attached.
-        """
-        #BEGIN run_checkm2_predict
-        self.logger.info('Starting run_checkm2_predict with params: %s', params)
-
-        for required in ('workspace_name', 'input_ref'):
-            if not params.get(required):
-                raise ValueError('Parameter {} is required'.format(required))
-
-        workspace_name = params['workspace_name']
-        input_ref = params['input_ref']
-
-        # 1. Resolve object type
-        obj_info = self.ws.get_object_info3(
-            {'objects': [{'ref': input_ref}]}
-        )['infos'][0]
-        obj_type = obj_info[2].split('-')[0]
-        self.logger.info('Input object type: %s', obj_type)
-
-        # 2. Export to FASTA(s)
-        fasta_paths = self._export_input_to_fastas(input_ref, obj_type)
-        if not fasta_paths:
-            raise ValueError(
-                'No FASTA files could be exported from input ref: {}'.format(input_ref)
-            )
-        self.logger.info('Exported %d FASTA file(s): %s', len(fasta_paths), fasta_paths)
-
-        # 3. Run CheckM2
-        out_dir = self._run_checkm2(fasta_paths, params)
-
-        # 4. Build and save KBase report
-        result = self._build_report(workspace_name, out_dir)
-
-        self.logger.info('run_checkm2_predict completed successfully')
-        return [result]
-        #END run_checkm2_predict
-
-    def run_kb_CheckM2(self, ctx, params):
-        """
-        Alias method to match KBase naming convention.
-        """
-        #BEGIN run_kb_CheckM2
-        return self.run_checkm2_predict(ctx, params)
-        #END run_kb_CheckM2
-
-    def status(self, ctx):
-        #BEGIN_STATUS
-        returnVal = {
-            'state': 'OK',
-            'message': '',
-            'version': self.VERSION,
-            'git_url': self.GIT_URL,
-            'git_commit_hash': self.GIT_COMMIT_HASH
-        }
-        #END_STATUS
-        return [returnVal]
-
-    # ------------------------------------------------------------------
-    # Private helpers
-    # ------------------------------------------------------------------
 
     def _export_input_to_fastas(self, input_ref, obj_type):
-        """
-        Export KBase object to FASTA file(s) depending on type.
-        """
         fasta_paths = []
         export_dir = os.path.join(self.scratch, 'fasta_' + uuid.uuid4().hex)
         os.makedirs(export_dir, exist_ok=True)
@@ -173,9 +82,6 @@ class kb_CheckM2:
         return fasta_paths
 
     def _run_checkm2(self, fasta_paths, params):
-        """
-        Run checkm2 predict using absolute binary path.
-        """
         out_dir = os.path.join(self.scratch, 'checkm2_' + uuid.uuid4().hex)
         os.makedirs(out_dir, exist_ok=True)
 
@@ -235,9 +141,6 @@ class kb_CheckM2:
         return out_dir
 
     def _build_report(self, workspace_name, out_dir):
-        """
-        Build and save a KBaseReport with CheckM2 output attached.
-        """
         report_tsv = os.path.join(out_dir, 'quality_report.tsv')
 
         summary_lines = []
@@ -273,3 +176,83 @@ class kb_CheckM2:
             'report_ref': report_info['ref'],
             'output_directory': out_dir
         }
+
+    #END_CLASS_HEADER
+
+    def __init__(self, config):
+        #BEGIN_CONSTRUCTOR
+        self.callback_url = os.environ.get('SDK_CALLBACK_URL')
+        self.scratch = os.path.abspath(config['scratch'])
+        self.ws_url = config['workspace-url']
+
+        self.ws = Workspace(self.ws_url)
+        self.dfu = DataFileUtil(self.callback_url)
+        self.au = AssemblyUtil(self.callback_url)
+        self.gfu = GenomeFileUtil(self.callback_url)
+        self.kbr = KBaseReport(self.callback_url)
+
+        self.checkm2_db = (
+            config.get('checkm2_db')
+            or os.environ.get('CHECKM2DB')
+            or '/kb/module/data/checkm2_db/CheckM2_database/CheckM2_database.dmnd'
+        )
+
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger('kb_CheckM2')
+        #END_CONSTRUCTOR
+        pass
+
+    def run_checkm2_predict(self, ctx, params):
+        """
+        Run CheckM2 predict on the given input object and create a
+        KBaseReport with the quality_report.tsv attached.
+        """
+        #BEGIN run_checkm2_predict
+        self.logger.info('Starting run_checkm2_predict with params: %s', params)
+
+        for required in ('workspace_name', 'input_ref'):
+            if not params.get(required):
+                raise ValueError('Parameter {} is required'.format(required))
+
+        workspace_name = params['workspace_name']
+        input_ref = params['input_ref']
+
+        obj_info = self.ws.get_object_info3(
+            {'objects': [{'ref': input_ref}]}
+        )['infos'][0]
+        obj_type = obj_info[2].split('-')[0]
+        self.logger.info('Input object type: %s', obj_type)
+
+        fasta_paths = self._export_input_to_fastas(input_ref, obj_type)
+        if not fasta_paths:
+            raise ValueError(
+                'No FASTA files could be exported from input ref: {}'.format(input_ref)
+            )
+        self.logger.info('Exported %d FASTA file(s): %s', len(fasta_paths), fasta_paths)
+
+        out_dir = self._run_checkm2(fasta_paths, params)
+        result = self._build_report(workspace_name, out_dir)
+
+        self.logger.info('run_checkm2_predict completed successfully')
+        return [result]
+        #END run_checkm2_predict
+
+    def run_kb_CheckM2(self, ctx, params):
+        """
+        Alias method to match KBase naming convention.
+        """
+        #BEGIN run_kb_CheckM2
+        return self.run_checkm2_predict(ctx, params)
+        #END run_kb_CheckM2
+
+    def status(self, ctx):
+        #BEGIN_STATUS
+        returnVal = {
+            'state': 'OK',
+            'message': '',
+            'version': self.VERSION,
+            'git_url': self.GIT_URL,
+            'git_commit_hash': self.GIT_COMMIT_HASH
+        }
+        #END_STATUS
+        return [returnVal]
