@@ -16,7 +16,7 @@ from installed_clients.KBaseReportClient import KBaseReport
 
 class kb_CheckM2:
 
-    VERSION = "0.0.1"
+    VERSION = "0.0.2"
     GIT_URL = "https://github.com/Cyrus-Shahnam/kb_CheckM2.git"
     GIT_COMMIT_HASH = "6329fe6cc2a384c1d3be3ef3791bd342d97b3ae8"
 
