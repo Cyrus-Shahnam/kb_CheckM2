@@ -1,15 +1,18 @@
 module-name:
     kb_CheckM2
-
+    
 module-description:
     A KBase module for running Msuite tools including CheckM2
-
+    
 service-language:
     python
-
+    
 module-version:
     0.0.2
-
+    
+data-version:
+    1.0.0
+    
 owners:
     [ac.shahnam, cashahnam, cshahnam]
-
+    
