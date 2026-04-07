@@ -192,10 +192,9 @@ class kb_CheckM2:
         self.checkm2_db = (
             config.get('checkm2_db')
             or os.environ.get('CHECKM2DB')
-            or '/kb/module/data/checkm2_db/CheckM2_database/CheckM2_database.dmnd'
+            or '/data/checkm2_db/CheckM2_database/CheckM2_database.dmnd'
         )
 
-        # Absolute path to binary - never rely on PATH
         self.CHECKM2_BIN = '/opt/conda/envs/checkm2/bin/checkm2'
 
         logging.basicConfig(level=logging.INFO)
