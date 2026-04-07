@@ -20,8 +20,6 @@ class kb_CheckM2:
     GIT_URL = "https://github.com/Cyrus-Shahnam/kb_CheckM2.git"
     GIT_COMMIT_HASH = "6329fe6cc2a384c1d3be3ef3791bd342d97b3ae8"
 
-    CHECKM2_BIN = '/opt/conda/envs/checkm2/bin/checkm2'
-
     #BEGIN_CLASS_HEADER
 
     def _export_input_to_fastas(self, input_ref, obj_type):
@@ -196,6 +194,9 @@ class kb_CheckM2:
             or os.environ.get('CHECKM2DB')
             or '/kb/module/data/checkm2_db/CheckM2_database/CheckM2_database.dmnd'
         )
+
+        # Absolute path to binary - never rely on PATH
+        self.CHECKM2_BIN = '/opt/conda/envs/checkm2/bin/checkm2'
 
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger('kb_CheckM2')
