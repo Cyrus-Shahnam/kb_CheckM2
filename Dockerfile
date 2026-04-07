@@ -10,7 +10,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     diamond-aligner prodigal && \
     rm -rf /var/lib/apt/lists/*
 
-# Install KB SDK requirements in base Python
 RUN pip install jsonrpcbase
 
 # ------------------------------------------------------------
@@ -61,17 +60,13 @@ RUN /opt/conda/envs/checkm2/bin/python -c \
 RUN /opt/conda/envs/checkm2/bin/checkm2 --version
 
 # ------------------------------------------------------------
-# 5) Download CheckM2 database
+# 5) Set database path - database is downloaded at registration
+#    time via entrypoint.sh init into /data (mounted volume)
 # ------------------------------------------------------------
-RUN mkdir -p /kb/module/data/checkm2_db && \
-    /opt/conda/envs/checkm2/bin/checkm2 database --download \
-        --path /kb/module/data/checkm2_db
-
-ENV CHECKM2DB=/kb/module/data/checkm2_db/CheckM2_database/CheckM2_database.dmnd
+ENV CHECKM2DB=/data/checkm2_db/CheckM2_database/CheckM2_database.dmnd
 
 # NOTE: PATH is intentionally NOT modified here.
 # Always call checkm2 via /opt/conda/envs/checkm2/bin/checkm2 in impl.py
-# to avoid shadowing the base kbase/sdkpython environment.
 
 # ------------------------------------------------------------
 # 6) Copy module and finalize
