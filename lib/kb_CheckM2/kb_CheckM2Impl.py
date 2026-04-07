@@ -189,16 +189,23 @@ class kb_CheckM2:
         self.gfu = GenomeFileUtil(self.callback_url)
         self.kbr = KBaseReport(self.callback_url)
 
-        self.checkm2_db = (
+        # Find checkm2 database - search under /data if default path missing
+        default_db = (
             config.get('checkm2_db')
             or os.environ.get('CHECKM2DB')
             or '/data/checkm2_db/CheckM2_database/CheckM2_database.dmnd'
         )
+        if not os.path.exists(default_db):
+            hits = glob.glob('/data/checkm2_db/**/*.dmnd', recursive=True)
+            self.checkm2_db = hits[0] if hits else default_db
+        else:
+            self.checkm2_db = default_db
 
         self.CHECKM2_BIN = '/opt/conda/envs/checkm2/bin/checkm2'
 
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger('kb_CheckM2')
+        self.logger.info('Using CheckM2 database: %s', self.checkm2_db)
         #END_CONSTRUCTOR
         pass
 
