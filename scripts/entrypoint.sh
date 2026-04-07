@@ -21,11 +21,17 @@ elif [ "${1}" = "init" ] ; then
     echo "Initializing CheckM2 reference data..."
     mkdir -p /data/checkm2_db
     /opt/conda/envs/checkm2/bin/checkm2 database --download --path /data/checkm2_db
-    if [ -f /data/checkm2_db/CheckM2_database/CheckM2_database.dmnd ]; then
+
+    # Find the actual dmnd file location (path may vary by CheckM2 version)
+    DMND_FILE=$(find /data/checkm2_db -name "*.dmnd" | head -1)
+
+    if [ -n "$DMND_FILE" ]; then
+        echo "CheckM2 database found at: $DMND_FILE"
         touch /data/__READY__
-        echo "CheckM2 database initialized successfully at /data/checkm2_db"
+        echo "CheckM2 database initialized successfully"
     else
-        echo "ERROR: CheckM2 database download failed - __READY__ not created"
+        echo "ERROR: No .dmnd file found under /data/checkm2_db"
+        find /data/checkm2_db -type f
         exit 1
     fi
 elif [ "${1}" = "bash" ] ; then
