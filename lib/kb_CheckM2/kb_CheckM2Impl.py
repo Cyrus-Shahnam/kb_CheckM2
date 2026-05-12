@@ -85,8 +85,13 @@ class kb_CheckM2:
 
         input_dir = os.path.join(self.scratch, 'checkm2_input_' + uuid.uuid4().hex)
         os.makedirs(input_dir, exist_ok=True)
+
         for fasta in fasta_paths:
-            dest = os.path.join(input_dir, os.path.basename(fasta))
+            basename = os.path.basename(fasta)
+            # Fix double extension: Bin.004.fasta.fasta -> Bin.004.fasta
+            if basename.endswith('.fasta.fasta'):
+                basename = basename[:-len('.fasta')]
+            dest = os.path.join(input_dir, basename)
             if not os.path.exists(dest):
                 os.symlink(fasta, dest)
 
@@ -99,6 +104,7 @@ class kb_CheckM2:
             '--output-directory', out_dir,
             '--threads', threads,
             '--database_path', db_path,
+            '--extension', 'fasta',
             '--force',
         ]
 
@@ -123,7 +129,7 @@ class kb_CheckM2:
         self.logger.info('CheckM2 output:\n%s', result.stdout)
 
         if result.returncode != 0:
-            raise RuntimeError(
+            raise ValueError(
                 'CheckM2 failed (exit {}). Output:\n{}'.format(
                     result.returncode, result.stdout
                 )
@@ -131,7 +137,7 @@ class kb_CheckM2:
 
         report_tsv = os.path.join(out_dir, 'quality_report.tsv')
         if not os.path.exists(report_tsv):
-            raise RuntimeError(
+            raise ValueError(
                 'CheckM2 ran but quality_report.tsv not found in: {}'.format(out_dir)
             )
 
