@@ -5,12 +5,14 @@ import uuid
 import logging
 import subprocess
 import glob
+import shutil
 
 from installed_clients.WorkspaceClient import Workspace
 from installed_clients.DataFileUtilClient import DataFileUtil
 from installed_clients.AssemblyUtilClient import AssemblyUtil
 from installed_clients.GenomeFileUtilClient import GenomeFileUtil
 from installed_clients.KBaseReportClient import KBaseReport
+from installed_clients.MetagenomeUtilsClient import MetagenomeUtils
 #END_HEADER
 
 
@@ -59,16 +61,28 @@ class kb_CheckM2:
                 fasta_paths.extend(sub_fastas)
 
         elif obj_type == 'KBaseMetagenomes.BinnedContigs':
-            result = self.dfu.get_objects({'object_refs': [input_ref]})
-            bins = result['data'][0]['data'].get('bins', [])
-            for bin_obj in bins:
-                bin_id = bin_obj.get('bid', uuid.uuid4().hex)
-                fasta_name = os.path.join(export_dir, '{}.fasta'.format(bin_id))
-                with open(fasta_name, 'w') as fh:
-                    for contig_id, seq in bin_obj.get('contigs', {}).items():
-                        fh.write('>{}\n{}\n'.format(contig_id, seq))
-                if os.path.getsize(fasta_name) > 0:
-                    fasta_paths.append(fasta_name)
+            # Use MetagenomeUtils to export bins to FASTA files properly
+            self.logger.info('Exporting BinnedContigs via MetagenomeUtils: %s', input_ref)
+            result = self.mgu.binned_contigs_to_file({
+                'input_ref': input_ref,
+                'save_to_shock': 0
+            })
+            bin_dir = result['bin_file_directory']
+            self.logger.info('Bins exported to directory: %s', bin_dir)
+
+            for fname in os.listdir(bin_dir):
+                if fname.endswith('.fasta') or fname.endswith('.fa') or fname.endswith('.fna'):
+                    src = os.path.join(bin_dir, fname)
+                    dst = os.path.join(export_dir, fname)
+                    shutil.copy2(src, dst)
+                    if os.path.getsize(dst) > 0:
+                        fasta_paths.append(dst)
+                        self.logger.info('Added bin: %s (%d bytes)',
+                            fname, os.path.getsize(dst))
+                    else:
+                        self.logger.warning('Skipping empty bin: %s', fname)
+
+            self.logger.info('Total non-empty bins: %d', len(fasta_paths))
 
         else:
             raise ValueError(
@@ -88,7 +102,6 @@ class kb_CheckM2:
 
         for fasta in fasta_paths:
             basename = os.path.basename(fasta)
-            # Fix double extension: Bin.004.fasta.fasta -> Bin.004.fasta
             if basename.endswith('.fasta.fasta'):
                 basename = basename[:-len('.fasta')]
             dest = os.path.join(input_dir, basename)
@@ -194,8 +207,8 @@ class kb_CheckM2:
         self.au = AssemblyUtil(self.callback_url)
         self.gfu = GenomeFileUtil(self.callback_url)
         self.kbr = KBaseReport(self.callback_url)
+        self.mgu = MetagenomeUtils(self.callback_url)
 
-        # Find checkm2 database - search under /data if default path missing
         default_db = (
             config.get('checkm2_db')
             or os.environ.get('CHECKM2DB')
