@@ -21,12 +21,14 @@
       "default_values": [ "" ],
       "field_type": "text",
       "text_options": {
-        "valid_ws_types": [
+       "valid_ws_types": [
           "KBaseMetagenomes.BinnedContigs",
           "KBaseGenomes.Genome",
+          "KBaseGenomeAnnotations.Assembly",
           "KBaseAssembly.Assembly",
           "KBaseSets.AssemblySet",
-          "KBaseSearch.GenomeSet"
+          "KBaseSearch.GenomeSet",
+          "KBaseGenomes.GenomeSet"
         ]
       }
     },
@@ -72,7 +74,7 @@
     "service-mapping": {
       "url": "",
       "name": "kb_CheckM2",
-      "method": "run_checkm2_predict",
+      "method": "run_kb_CheckM2",
       "input_mapping": [
         {
           "narrative_system_variable": "workspace",
