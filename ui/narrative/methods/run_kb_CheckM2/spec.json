@@ -74,7 +74,7 @@
     "service-mapping": {
       "url": "",
       "name": "kb_CheckM2",
-      "method": "run_kb_CheckM2",
+      "method": "run_checkm2_predict",
       "input_mapping": [
         {
           "narrative_system_variable": "workspace",
